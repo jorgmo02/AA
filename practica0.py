@@ -66,4 +66,41 @@ def my_func(x):
     return (x * 4) + 4
 
 
-integra_mc(my_func, 0, 8, 200000)
+
+def bad_max_altura(fun, a, b, num_puntos):
+    x = np.linspace(a, b, num_puntos)
+    y = np.empty(x.size)
+    for i in range(0, x.size):
+        y[i] = fun(x[i])
+    return np.amax(y)
+
+
+def bad_integra_mc(fun, a, b, num_puntos=10000):
+    min = 0
+    max = bad_max_altura(fun, a, b, num_puntos)
+    
+    puntos = np.linspace(a, b, num_puntos)
+    puntos_func = np.empty(puntos.size)
+    for i in range(0, puntos.size):
+        puntos_func[i] = fun(puntos[i])
+
+    x = np.random.uniform(a, b, num_puntos)
+    y = np.random.uniform(min, max, num_puntos)
+
+    sum = 0
+    for i in range(0, x.size):
+        if (y[i] < fun(x[i])):
+            sum += 1
+
+    res = (b-a) * max * (sum / num_puntos)
+    print(res)
+
+    plt.scatter(x, y, c='red', label='puntos aleatorios')
+    plt.plot(puntos, puntos_func, c='blue', label='function')
+    plt.show()
+
+    return res
+
+
+
+bad_integra_mc(my_func, 0, 8, 200000)

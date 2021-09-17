@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.integrate
 
 def dot_product(x1, x2):
     """Calcula el producto escalar con un bucle
@@ -20,7 +21,7 @@ def fast_dot_product(x1, x2):
     toc = time.process_time()
     return 1000 * (toc - tic)
 
-def compara_tiempos():
+def compara_tiempos_dot():
     sizes = np.linspace(100, 10000000, 20)
     times_dot = []
     times_fast = []
@@ -44,6 +45,7 @@ def max_altura(fun, a, b, num_puntos):
 
 
 def integra_mc(fun, a, b, num_puntos=10000):
+    tic = time.process_time()
     min = 0
     max = max_altura(fun, a, b, num_puntos)
 
@@ -52,20 +54,21 @@ def integra_mc(fun, a, b, num_puntos=10000):
 
     sum = np.sum(y < fun(x))
     res = (b-a) * max * (sum / num_puntos)
-    print(res)
+    toc = time.process_time()
+    print("-------Operaciones con vectores--------------")
+    print("Nuestro resultado {}".format(res))
+    print("Resultado de scipy {}".format(scipy.integrate.quad(fun,a,b)))
 
     puntos = np.linspace(a, b, num_puntos)
     plt.scatter(x, y, c='red', label='puntos aleatorios')
     plt.plot(puntos, fun(puntos), c='blue', label='function')
-    plt.show()
+    # plt.show()
 
-    return res
+    return res, (toc-tic)
 
 
 def my_func(x):
-    return (x * 4) + 4
-
-
+    return x**2
 
 def bad_max_altura(fun, a, b, num_puntos):
     x = np.linspace(a, b, num_puntos)
@@ -76,9 +79,10 @@ def bad_max_altura(fun, a, b, num_puntos):
 
 
 def bad_integra_mc(fun, a, b, num_puntos=10000):
+    tic = time.process_time()
     min = 0
     max = bad_max_altura(fun, a, b, num_puntos)
-    
+
     puntos = np.linspace(a, b, num_puntos)
     puntos_func = np.empty(puntos.size)
     for i in range(0, puntos.size):
@@ -93,14 +97,31 @@ def bad_integra_mc(fun, a, b, num_puntos=10000):
             sum += 1
 
     res = (b-a) * max * (sum / num_puntos)
-    print(res)
+
+    toc = time.process_time()
+    print("------------Iterando--------------")
+    print("Nuestro resultado {}".format(res))
+    print("Resultado de scipy {}".format(scipy.integrate.quad(fun,a,b)))
 
     plt.scatter(x, y, c='red', label='puntos aleatorios')
     plt.plot(puntos, puntos_func, c='blue', label='function')
-    plt.show()
+    # plt.show()
 
-    return res
+    return res, (toc-tic)
+
+def compara_tiempos(fun,a,b):
+    samples = np.linspace(100, 10000000, 20)
+    time_it = []
+    time_vec = []
+    for sample in samples:
+        time_it += [bad_integra_mc(fun,a,b,int(sample))[1]]
+        time_vec += [integra_mc(fun,a,b,int(sample))[1]]
+
+    plt.figure()
+    plt.scatter(samples, time_it, c='red', label='bucle')
+    plt.scatter(samples, time_vec, c='blue', label='vector')
+    plt.legend()
+    plt.savefig('time_montecarlo.png')
 
 
-
-bad_integra_mc(my_func, 0, 8, 200000)
+compara_tiempos(my_func, 0, 8)

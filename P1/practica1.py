@@ -29,7 +29,8 @@ def plot_line(X, Y, theta):
     max_y = h(max_x, theta)
     plt.plot(X, Y, "x")
     plt.plot([min_x, max_x], [min_y, max_y])
-    plt.show()
+    # plt.show()
+    plt.savefig("apartado1_line.png")
 
 
 def descenso_gradiente_simple(X, Y, alpha=0.01, iteraciones=1500):
@@ -61,13 +62,16 @@ def show_mesh(data):
     fig = plt.figure()
     ax = Axes3D(fig)
     surf = ax.plot_surface(data[0], data[1], data[2], cmap=cm.jet, linewidth=0, antialiased=False)
-    plt.show()
+    # plt.show()
+    plt.savefig("apartado1_mesh.png")
 
 def show_contour(data):
     #TODO preguntar por logspace
     plt.contour(data[0],data[1],data[2],np.logspace(-2,3,20),colors='blue')
+    # plt.scatter(data[0], data[1])
     # plt.contour(data[0],data[1],data[2],colors='blue')
-    plt.show()
+    # plt.show()
+    plt.savefig("apartado1_contour.png")
 
 def apartado_1():
     datos = carga_csv('ex1data1.csv')
@@ -83,7 +87,7 @@ def normaliza_matriz(x):
     mu = np.mean(x, axis=0)  # Media de cada columna
     sigma = np.std(x, axis=0)  # Desviacion estandar por columnas, no confundir con la querida std de c++
     x_norm = (x-mu)/sigma
-
+    
     return x_norm, mu, sigma
 
 def coste_vec(X, Y, Theta):
@@ -91,33 +95,84 @@ def coste_vec(X, Y, Theta):
     Aux = (H-Y) ** 2
     return Aux.sum() / (2*len(X))
 
+def gradiente_it(X, Y, Theta, alpha):
+    m = np.shape(X)[0]
+    n = np.shape(X)[1]
+    H = np.dot(X, Theta)
+    Aux = (H-Y)
+
+    for i in range(n):
+        Aux_i = Aux * X[:, i]        
+        Theta[i] -= (alpha/m) * Aux_i.sum()     
+    return Theta
+
+def gradiente_vec(X, Y, Theta, alpha):
+    NuevaTheta = Theta
+    m = np.shape(X)[0]
+    H = np.dot(X, Theta)
+    return Theta - (alpha/m) * np.dot(np.transpose(X), (H-Y))
+
 def descenso_gradiente_multiple(X, Y, alpha=0.01, iteraciones=1500):
     Theta = np.zeros(np.shape(X)[1])
-    m = np.shape(X)[0]
-    print(m)
-    # print(np.shape(Theta))
-    for _ in range(iteraciones):
-        cost = coste_vec(X, Y, Theta)
-        Theta = Theta - (alpha/m) * cost
+    costes = np.zeros(iteraciones)
+    for i in range(iteraciones):
+        costes[i] = coste_vec(X, Y, Theta)
+        Theta = gradiente_it(X, Y, Theta, alpha)
+    
+    # Devolveremos todo el proceso para poder comparar distintos
+    # Factores de aprendizaje
+    return costes, Theta
 
+
+def ec_normal(X, Y):    
+    transX = np.transpose(X)
+    XTX = np.dot(transX, X)
+    invXT = np.dot(np.linalg.pinv(XTX), transX)
+    return np.dot(invXT, Y)
 
 
 def apartado_2():
     datos = carga_csv('ex1data2.csv')
-    X = datos[:, :-1] #Todas las columnas excepto la ultima
-    # print(np.shape(X))
-    Y = datos [:, -1] #La ultima columna
-    # print(np.shape(Y))
-    x_norm, mu, sigma = normaliza_matriz(X)
+    mat_norm, mu, sigma = normaliza_matriz(datos)
+    X = mat_norm[:, :-1] #Todas las columnas excepto la ultima
+    Y = mat_norm[:, -1] #La ultima columna
     m = np.shape(X)[0]
-    n = np.shape(X)[1]
     X = np.hstack([np.ones([m, 1]), X])
-    alpha = 0.01
-    descenso_gradiente_multiple(X, Y)
+    plt.figure()
+    
+    Alphas = [(0.01,'lime'),(0.1,'blue'),(0.3,'indigo'),(0.03,'teal')]
+    for alpha, color in Alphas:
+        costes, Theta = descenso_gradiente_multiple(X, Y, alpha,iteraciones=500)
+        plt.scatter(np.arange(np.shape(costes)[0]),costes,c=color,label='alpha {}'.format(alpha))
+        
+    plt.legend()
+    plt.savefig("descenso_gradiente.png")
+
+    ejemplo = [1650, 3]
+    ejemplo_norm = (ejemplo - mu[:2]) / sigma[:2] #Normalizamos los datos
+    ejemplo_norm = np.hstack([[1],ejemplo_norm]) #Añadimos un 1
+    prediccion = np.sum(Theta * ejemplo_norm) #Multiplicamos elemento a elemnto
+    print(prediccion*sigma[-1] + mu[-1]) #Escalamos el resultado
+
+def apartado_2_2():
+    datos = carga_csv('ex1data2.csv')
+    ejemplo = [[1, 1650, 3]]
+    X = datos[:, :-1] #Todas las columnas excepto la ultima
+    Y = datos[:, -1] #La ultima columna
+    m = np.shape(X)[0]
+    X = np.hstack([np.ones([m, 1]), X])
+    Thetas = ec_normal(X, Y)
+    print(np.shape(X))
+    print(np.shape(ejemplo))
+    print(np.shape(Thetas))
+    prediccion = np.sum(Thetas * ejemplo)
+    print(prediccion)
 
 
 def main():
+    apartado_1()
     apartado_2()
+    apartado_2_2()
 
 
 main()

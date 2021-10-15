@@ -2,6 +2,7 @@ from pandas.io.parsers import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize
+from sklearn.preprocessing import PolynomialFeatures 
 
 def carga_csv(filename):
     valores = read_csv(filename, header=None).to_numpy()
@@ -36,12 +37,34 @@ def coste(Theta, X, Y):
     a = np.transpose(np.log(G)) * Y + np.transpose(np.log(1 - G)) * (1 - Y)
     return np.sum(-a) / m
 
+def coste_regularizado(Theta, X, Y, lamb):
+    m = np.shape(X)[0]
+    sin_regularizar = coste(Theta, X, Y)
+    #TODO preguntar por el termino de regularizacion en el coste == preguntar por si aquí es Theta[1:] o Theta a secas
+    regularizacion = np.sum(Theta[1:] ** 2)
+    r = (lamb * regularizacion) / (2 * m)
+    return sin_regularizar + r
 
 def gradiente(Theta, X, Y):
     m = np.shape(X)[0]
     G = sigmoide(np.matmul(X, Theta))
     a = np.matmul(np.transpose(X), G - Y)
     return a / m
+
+def lambda_for_gradient(x,m,lamb):
+    return (lamb/m)*x
+
+def gradiente_regularizado(Theta, X, Y, lamb):
+    grad = gradiente(Theta, X, Y)
+    g_0 = grad[0]
+    regularizador = (lamb/np.shape(X)[0])*Theta
+    grad = grad + regularizador
+    grad[0] = g_0
+    
+    # suma_reg = np.vectorize(lambda_for_gradient)
+    # grad = suma_reg(grad[1:],np.shape(X)[0],lamb)
+    return grad
+    
 
 def pass_or_fail(x):
     return 1 if x >= 0.5 else 0
@@ -50,31 +73,23 @@ def porcentaje_aciertos(Theta, X, Y):
     m = np.shape(X)[0]
     values = sigmoide(np.matmul(X, Theta))
 
-    #TODO poner bonito y vectorizar
-    for i in range(m):
-        if values[i] >= 0.5:
-            values[i] = 1
-        else:
-            values[i] = 0
+    pass_or_fail_v = np.vectorize(pass_or_fail)
+    values = pass_or_fail_v(values)
 
     success = np.sum(values == Y)
 
     print("{} aciertos".format(success))
     return success/m*100
 
-
-
-
-def main():
+def regresion_logistica():
     datos = carga_csv('ex2data1.csv')
     X = datos[:, :-1]  # Todas las columnas excepto la última
     Y = datos[:, -1]  # la ultima columna
-
     m = np.shape(X)[0]
-    n = np.shape(X)[1]
     X = np.hstack([np.ones([m, 1]), X])
+    n = np.shape(X)[1]
 
-    Theta = np.zeros(np.shape(X)[1])
+    Theta = np.zeros(n)
 
     result = optimize.fmin_tnc(func=coste, x0=Theta, fprime=gradiente, args=(X, Y),messages=0)
     theta_opt = result[0]
@@ -85,5 +100,53 @@ def main():
     # pinta_frontera_recta(X, Y, theta_opt)
     porcentaje =  porcentaje_aciertos(theta_opt, X, Y)
     print(porcentaje)
+
+def plot_decisionboundary(X, Y, Theta, poly):
+    plt.figure()
+ 
+    x1_min, x1_max = X[:, 0].min(), X[:, 0].max()
+    x2_min, x2_max = X[:, 1].min(), X[:, 1].max()
+    xx1, xx2 = np.meshgrid(np.linspace(x1_min, x1_max),
+                           np.linspace(x2_min, x2_max))
+ 
+    h = sigmoide(poly.fit_transform(np.c_[xx1.ravel(),
+                                         xx2.ravel()]).dot(Theta))
+    h = h.reshape(xx1.shape)
+ 
+    plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')
+    #plt.savefig("boundary.png")
+    plt.show()
+    plt.close()
+
+def regresion_regularizada():
+    datos = carga_csv('ex2data1.csv')
+    X = datos[:, :-1]  # Todas las columnas excepto la última
+    Y = datos[:, -1]  # la ultima columna
+
+    # Mapeo de atributos
+    poly = PolynomialFeatures(6)
+    poly_X  = poly.fit_transform(X)
+    m = np.shape(poly_X)[0]
+    n = np.shape(poly_X)[1]
+    # print(np.shape(poly_X))
+
+    lamb = 1
+
+    Theta = np.zeros(n)
+    coste_r = coste_regularizado(Theta,poly_X, Y, lamb)
+    gradiente_r = gradiente_regularizado(Theta, poly_X ,Y, lamb)
+    print("Coste regularizado: {}".format(coste_r))
+    print("Gradiente regularizado: {}".format(gradiente_r))
+
+    result = optimize.fmin_tnc(func=coste_regularizado,x0=Theta, fprime=gradiente_regularizado, args=(poly_X,Y, lamb))
+    theta_opt = result[0]
+    print("Theta optimo: {}".format(theta_opt))
+    print("retcode {}".format(result[2]))
+    plot_decisionboundary(X,Y,theta_opt,poly)
+
+def main():
+    # regresion_logistica()
+    regresion_regularizada()
+    
 
 main()

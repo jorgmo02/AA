@@ -102,8 +102,6 @@ def regresion_logistica():
     print(porcentaje)
 
 def plot_decisionboundary(X, Y, Theta, poly):
-    plt.figure()
- 
     x1_min, x1_max = X[:, 0].min(), X[:, 0].max()
     x2_min, x2_max = X[:, 1].min(), X[:, 1].max()
     xx1, xx2 = np.meshgrid(np.linspace(x1_min, x1_max),
@@ -115,34 +113,46 @@ def plot_decisionboundary(X, Y, Theta, poly):
  
     plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')
     #plt.savefig("boundary.png")
-    plt.show()
-    plt.close()
+
+
+def visualiza_casos(X, Y):
+    pos = np.where(Y == 1)
+    plt.scatter(X[pos,0],X[pos, 1], marker='+', c='black')
+    pos = np.where(Y == 0)
+    plt.scatter(X[pos,0],X[pos, 1], marker='o', c='orange')
 
 def regresion_regularizada():
-    datos = carga_csv('ex2data1.csv')
+    datos = carga_csv('ex2data2.csv')
     X = datos[:, :-1]  # Todas las columnas excepto la última
     Y = datos[:, -1]  # la ultima columna
 
     # Mapeo de atributos
     poly = PolynomialFeatures(6)
-    poly_X  = poly.fit_transform(X)
+    poly_X = poly.fit_transform(X)
     m = np.shape(poly_X)[0]
     n = np.shape(poly_X)[1]
     # print(np.shape(poly_X))
 
-    lamb = 1
-
     Theta = np.zeros(n)
-    coste_r = coste_regularizado(Theta,poly_X, Y, lamb)
-    gradiente_r = gradiente_regularizado(Theta, poly_X ,Y, lamb)
-    print("Coste regularizado: {}".format(coste_r))
-    print("Gradiente regularizado: {}".format(gradiente_r))
 
-    result = optimize.fmin_tnc(func=coste_regularizado,x0=Theta, fprime=gradiente_regularizado, args=(poly_X,Y, lamb))
-    theta_opt = result[0]
-    print("Theta optimo: {}".format(theta_opt))
-    print("retcode {}".format(result[2]))
-    plot_decisionboundary(X,Y,theta_opt,poly)
+    Lambdas = np.linspace(0, 5, num=10)
+    Lambdas = [1]
+
+    for lamb in Lambdas:
+        coste_r = coste_regularizado(Theta,poly_X, Y, lamb)
+        gradiente_r = gradiente_regularizado(Theta, poly_X,Y, lamb)
+        if lamb == 1:
+            print(coste_r)
+            print(gradiente_r)
+
+        result = optimize.fmin_tnc(func=coste_regularizado,x0=Theta, fprime=gradiente_regularizado, args=(poly_X,Y, lamb), messages=0)
+        theta_opt = result[0]
+
+        plt.figure()
+        visualiza_casos(X, Y)
+        plot_decisionboundary(X, Y, theta_opt, poly)
+        plt.savefig("Samples/Comprobacion_lambda{}.png".format(lamb))
+        plt.close()
 
 def main():
     # regresion_logistica()

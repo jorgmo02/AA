@@ -74,6 +74,9 @@ def oneVsAll(X, y, num_etiquetas, reg):
 
     return Theta
 
+def ten_at_zero(x):
+    return 10 if x == 0 else x
+
 def comprueba_aciertos(X, y, Theta):
     k = Theta.shape[0]
     acc = 0
@@ -93,14 +96,11 @@ def comprueba_aciertos(X, y, Theta):
     predicciones = np.argmax(results, axis=1)
     print(predicciones[:100])
 
-    acc = 0
-    for i in range(predicciones.shape[0]):
-        busca = 10 if (predicciones[i] == 0) else predicciones[i]
-        if(busca == y[i]):
-            acc += 1
+    ten_at_zero_v = np.vectorize(ten_at_zero)
+    predicciones = ten_at_zero_v(predicciones)
+    acc = np.sum(predicciones == y)
 
     return (acc/m)*100
-
 
 
 def main():

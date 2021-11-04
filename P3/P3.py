@@ -103,17 +103,42 @@ def comprueba_aciertos(X, y, Theta):
     return (acc/m)*100
 
 
+def propaga_red_neuronal():
+    weights = loadmat('ex3weights.mat')
+    X, y = load_data()
+    m = X.shape[0]
+    Theta1, Theta2 = weights['Theta1'], weights['Theta2']
+    X = np.hstack([np.ones([X.shape[0], 1]), X])
+
+    z2 = np.dot(X, Theta1.T)
+    a2 = np.hstack([np.ones([m, 1]), sigmoide(z2)])
+    z3 = np.dot(a2, Theta2.T)
+    h = sigmoide(z3)
+
+    labels = np.argmax(h, axis=1)+1
+
+    acc = (np.sum(labels == y)/m)*100
+
+    print(acc)
+
+
+
 def main():
-    data = loadmat('ex3data1.mat')
-    y = data['y']
-    y = y[:, 0]
-    X = data['X']
+    X, y = load_data()
     X = np.hstack([np.ones([X.shape[0], 1]), X])
 
     reg = 0.1
     Theta = oneVsAll(X, y, 10, reg)
     print(Theta.shape)
-    print(comprueba_aciertos(X,y, Theta))
+    print(comprueba_aciertos(X, y, Theta))
 
 
-main()
+def load_data():
+    data = loadmat('ex3data1.mat')
+    y = data['y']
+    y = y[:, 0]
+    X = data['X']
+    return X, y
+
+
+propaga_red_neuronal()

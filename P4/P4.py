@@ -31,7 +31,7 @@ def propaga_red(X, Theta1, Theta2):
 
 def safe_log(n):
     #TODO comentar que esto debería ser mas chiquito
-    return np.log(n + 1e-9)
+    return np.log(n + 1e-7)
 
 def one_hot_y(X, y, num_labels=10):
     m = len(y)
@@ -46,10 +46,6 @@ def one_hot_y(X, y, num_labels=10):
 def coste_red(X, Y, Theta1, Theta2):
     m = X.shape[0]
     A1, A2, h = propaga_red(X, Theta1, Theta2)
-    a = Y*safe_log(h)
-    b = (1-Y) * safe_log(1-h)
-    # return (-1/m)*np.sum(a+b)
-    # hot_y = one_hot_y(X, Y, 10)
 
     coste = np.sum((-Y * safe_log(h)) - ((1-Y) * safe_log(1-h)))
     return coste / m
@@ -61,6 +57,12 @@ def coste_red_regularizado(X, Y, Theta1, Theta2, reg):
     b = np.sum(Theta2[1:]**2)
 
     return coste_sin_regularizar + reg/(2*m) * (a+b)
+
+def regulariza_gradiente(grad, m , reg, Theta):
+    guarda = grad[0]
+    grad = grad + (reg/m * Theta)
+    grad[0] = guarda
+    return grad
 
 def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
     
@@ -92,10 +94,13 @@ def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
         Delta1 = Delta1 + np.dot(d2k[1:, np.newaxis], a1k[np.newaxis, :])
         Delta2 = Delta2 + np.dot(d3k[:, np.newaxis], a2k[np.newaxis, :])
 
-    grad1 = Delta1/m
-    grad2 = Delta2/m
 
-    return coste_red(X, y, Theta1, Theta2), np.concatenate([np.ravel(grad1), np.ravel(grad2)])
+    grad1 = Delta1/ m
+    grad2 = Delta2/ m
+    grad1 = regulariza_gradiente(grad1, m, reg, Theta1)
+    grad2 = regulariza_gradiente(grad2, m, reg, Theta2)
+
+    return coste_red_regularizado(X, y, Theta1, Theta2, 1), np.concatenate([np.ravel(grad1), np.ravel(grad2)])
 
 
 

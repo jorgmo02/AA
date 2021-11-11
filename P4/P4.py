@@ -2,7 +2,8 @@ import numpy as np
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 from scipy import optimize
-import checkNNGradients
+from checkNNGradients import checkNNGradients
+from displayData import displayData
 
 def load_data(file='ex4data1.mat'):
     data = loadmat(file)
@@ -13,13 +14,14 @@ def load_data(file='ex4data1.mat'):
 
 
 def sigmoide(z):
-    return (1 / (1 + np.e ** -z))
+    return 1 / (1 + np.e ** -z)
 
 
+# devuelve los resultados de la red
 def propaga_red(X, Theta1, Theta2):
     m = X.shape[0]
 
-    a1 = np.hstack([np.ones([m  , 1]), X])
+    a1 = np.hstack([np.ones([m, 1]), X])
     z2 = np.dot(a1, Theta1.T)
     a2 = np.hstack([np.ones([m, 1]), sigmoide(z2)])
     z3 = np.dot(a2, Theta2.T)
@@ -28,7 +30,8 @@ def propaga_red(X, Theta1, Theta2):
     return a1, a2, h
 
 def safe_log(n):
-    return np.log(n + 1e-6)
+    #TODO comentar que esto debería ser mas chiquito
+    return np.log(n + 1e-9)
 
 def one_hot_y(X, y, num_labels=10):
     m = len(y)
@@ -43,9 +46,12 @@ def one_hot_y(X, y, num_labels=10):
 def coste_red(X, Y, Theta1, Theta2):
     m = X.shape[0]
     A1, A2, h = propaga_red(X, Theta1, Theta2)
-    hot_y = one_hot_y(X, Y, 10)
+    a = Y*safe_log(h)
+    b = (1-Y) * safe_log(1-h)
+    # return (-1/m)*np.sum(a+b)
+    # hot_y = one_hot_y(X, Y, 10)
 
-    coste = np.sum((-hot_y * safe_log(h)) - ((1-hot_y) * safe_log(1-h)))
+    coste = np.sum((-Y * safe_log(h)) - ((1-Y) * safe_log(1-h)))
     return coste / m
 
 def coste_red_regularizado(X, Y, Theta1, Theta2, reg):
@@ -55,7 +61,6 @@ def coste_red_regularizado(X, Y, Theta1, Theta2, reg):
     b = np.sum(Theta2[1:]**2)
 
     return coste_sin_regularizar + reg/(2*m) * (a+b)
-
 
 def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
     
@@ -67,21 +72,31 @@ def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
     Delta1 = np.zeros(Theta1.shape)
     Delta2 = np.zeros(Theta2.shape)
 
-    print(Delta1.shape)
-    print(Delta2.shape)
 
     A1, A2, h = propaga_red(X, Theta1, Theta2)
 
-    coste = 0
-
     for k in range(m):
+        # Salida de la primera capa ejemplo k
         a1k = A1[k, :]  # (401,)
+        # Salida de la segunda capa para el ejemplo k
         a2k = A2[k, :]  # (26,)
-        hk = h[k, :]    # num neuronas ultima capa
-        yk = y[k]
+        # Salida de la capa final para el ejemplo k
+        hk = h[k, :]    # num neuronas ultima capa (10,)
+        yk = y[k]       # resultado real del ejemplo k
 
-        d3k = hk - yk   # error (10,)
-        d2k = np.dot(Theta2.T, d3k) * (a2k * (1 - a2k)) # (26,)
+        # TODO preguntar si el error no esta normalizado
+        d3k = hk - yk   # error capa final (10,)
+        d2k = np.dot(Theta2.T, d3k) * (a2k * (1 - a2k))  # error capa 2 (26,), se multiplica para ponderar
+        # d1k no existe porque no hay un resultado en esa capa aún, son los parámetros
+
+        Delta1 = Delta1 + np.dot(d2k[1:, np.newaxis], a1k[np.newaxis, :])
+        Delta2 = Delta2 + np.dot(d3k[:, np.newaxis], a2k[np.newaxis, :])
+
+    grad1 = Delta1/m
+    grad2 = Delta2/m
+
+    return coste_red(X, y, Theta1, Theta2), np.concatenate([np.ravel(grad1), np.ravel(grad2)])
+
 
 
 
@@ -89,12 +104,14 @@ def main():
     weights = loadmat('ex4weights.mat')
     Theta1, Theta2 = weights['Theta1'], weights['Theta2']
     X, y = load_data()
-    print(coste_red(X, y,Theta1, Theta2))
+    y = one_hot_y(X, y, 10)
+    print(coste_red(X, y, Theta1, Theta2))
     print(coste_red_regularizado(X, y, Theta1, Theta2, 1))
     print(Theta1.shape)
     print(Theta2.shape)
     # TODO sacar los tamaños limpios
-    backprop(np.concatenate([Theta1.ravel(), Theta2.ravel()]), Theta1.shape[1]-1, Theta2.shape[1]-1, 10, X, y, 1)
+    coste, grad = backprop(np.concatenate([Theta1.ravel(), Theta2.ravel()]), X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, 1)
+    checkNNGradients(backprop, 1)
 
 
 main()

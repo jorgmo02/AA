@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.optimize
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 from scipy import optimize
@@ -35,7 +36,6 @@ def safe_log(n):
 
 def one_hot_y(X, y, num_labels=10):
     m = len(y)
-    input_size = X.shape[1]
     y = (y - 1)
     y_onehot = np.zeros((m, num_labels))  # 5000 x 10
     for i in range(m):
@@ -95,12 +95,12 @@ def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
         Delta2 = Delta2 + np.dot(d3k[:, np.newaxis], a2k[np.newaxis, :])
 
 
-    grad1 = Delta1/ m
-    grad2 = Delta2/ m
+    grad1 = Delta1 / m
+    grad2 = Delta2 / m
     grad1 = regulariza_gradiente(grad1, m, reg, Theta1)
     grad2 = regulariza_gradiente(grad2, m, reg, Theta2)
 
-    return coste_red_regularizado(X, y, Theta1, Theta2, 1), np.concatenate([np.ravel(grad1), np.ravel(grad2)])
+    return coste_red_regularizado(X, y, Theta1, Theta2, 1)#, np.concatenate([np.ravel(grad1), np.ravel(grad2)])
 
 
 
@@ -110,13 +110,18 @@ def main():
     Theta1, Theta2 = weights['Theta1'], weights['Theta2']
     X, y = load_data()
     y = one_hot_y(X, y, 10)
-    print(coste_red(X, y, Theta1, Theta2))
-    print(coste_red_regularizado(X, y, Theta1, Theta2, 1))
-    print(Theta1.shape)
-    print(Theta2.shape)
-    # TODO sacar los tamaños limpios
-    coste, grad = backprop(np.concatenate([Theta1.ravel(), Theta2.ravel()]), X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, 1)
-    checkNNGradients(backprop, 1)
 
+    reg = 1
+    params = np.concatenate([Theta1.ravel(), Theta2.ravel()])
+    # coste, grad = backprop(params, X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg)
+    # checkNNGradients(backprop, reg)
+
+    epsilon = 0.12;
+    pesos = np.random.uniform(-epsilon, epsilon, params.shape[0])
+
+    res = optimize.minimize(backprop, x0=pesos,
+                            args=(X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg),
+                            options={'maxiter': 70})
+    print(res.x)
 
 main()

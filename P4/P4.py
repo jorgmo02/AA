@@ -31,7 +31,6 @@ def propaga_red(X, Theta1, Theta2):
     return a1, a2, h
 
 def safe_log(n):
-    #TODO comentar que esto debería ser mas chiquito
     return np.log(n + 1e-7)
 
 def one_hot_y(X, y, num_labels=10):
@@ -68,8 +67,7 @@ def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
     
     m = X.shape[0]
 
-    Theta1 = np.reshape(params_rn[:num_ocultas * (num_entradas + 1) ], (num_ocultas, (num_entradas + 1)))
-    Theta2 = np.reshape(params_rn[ num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1)))
+    Theta1, Theta2 = Ravel_thetas(num_entradas, num_etiquetas, num_ocultas, params_rn)
 
     Delta1 = np.zeros(Theta1.shape)
     Delta2 = np.zeros(Theta2.shape)
@@ -94,16 +92,16 @@ def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
         Delta1 = Delta1 + np.dot(d2k[1:, np.newaxis], a1k[np.newaxis, :])
         Delta2 = Delta2 + np.dot(d3k[:, np.newaxis], a2k[np.newaxis, :])
 
+    grad1 = regulariza_gradiente(Delta1 / m, m, reg, Theta1)
+    grad2 = regulariza_gradiente(Delta2 / m, m, reg, Theta2)
 
-    grad1 = Delta1 / m
-    grad2 = Delta2 / m
-    grad1 = regulariza_gradiente(grad1, m, reg, Theta1)
-    grad2 = regulariza_gradiente(grad2, m, reg, Theta2)
-
-    return coste_red_regularizado(X, y, Theta1, Theta2, 1)#, np.concatenate([np.ravel(grad1), np.ravel(grad2)])
+    return coste_red_regularizado(X, y, Theta1, Theta2, 1) , np.concatenate([np.ravel(grad1), np.ravel(grad2)])
 
 
-
+def Ravel_thetas(num_entradas, num_etiquetas, num_ocultas, params_rn):
+    Theta1 = np.reshape(params_rn[:num_ocultas * (num_entradas + 1)], (num_ocultas, (num_entradas + 1)))
+    Theta2 = np.reshape(params_rn[num_ocultas * (num_entradas + 1):], (num_etiquetas, (num_ocultas + 1)))
+    return Theta1, Theta2
 
 def main():
     weights = loadmat('ex4weights.mat')
@@ -113,15 +111,33 @@ def main():
 
     reg = 1
     params = np.concatenate([Theta1.ravel(), Theta2.ravel()])
-    # coste, grad = backprop(params, X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg)
+    coste, grad = backprop(params, X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg)
     # checkNNGradients(backprop, reg)
 
     epsilon = 0.12;
     pesos = np.random.uniform(-epsilon, epsilon, params.shape[0])
 
-    res = optimize.minimize(backprop, x0=pesos,
-                            args=(X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg),
-                            options={'maxiter': 70})
-    print(res.x)
+    # its = np.linspace(5, 100, 12)
+    # for i in its:
+    #     perc = entrena_red(Theta1, Theta2, X, pesos, 1, y, iters=int(i))
+    #     print(" {} & {}\% \\\\".format(int(i), perc*100))
+
+    lambdas = np.linspace(0.01, 2, 12)
+    for l in lambdas:
+        perc = entrena_red(Theta1, Theta2, X, pesos, l, y)
+        print(" {} & {}\% \\\\".format(l, perc*100))
+
+
+
+def entrena_red(Theta1, Theta2, X, pesos, reg, y, iters=70):
+    res = scipy.optimize.minimize(backprop, pesos,
+                                  args=(X.shape[1], Theta1.shape[0], Theta2.shape[0], X, y, reg),
+                                  jac=True, method='TNC', options={'maxiter': iters})
+    # def backprop(params_rn, num_entradas, num_ocultas, num_etiquetas, X, y, reg):
+    Theta1, Theta2 = Ravel_thetas(X.shape[1], Theta2.shape[0], Theta1.shape[0], res.x)
+    a1, a2, h = propaga_red(X, Theta1, Theta2)
+    acc = np.sum(np.argmax(h, axis=1) == np.argmax(y, axis=1))
+    return acc / X.shape[0]
+
 
 main()

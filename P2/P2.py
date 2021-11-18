@@ -112,6 +112,7 @@ def plot_decisionboundary(X, Y, Theta, poly):
     h = h.reshape(xx1.shape)
  
     plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')
+    plt.show()
     #plt.savefig("boundary.png")
 
 

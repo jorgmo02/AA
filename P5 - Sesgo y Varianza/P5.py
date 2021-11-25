@@ -98,13 +98,8 @@ def main():
         res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X[0:i], Y[0:i], 0),
                                       jac=True, method='TNC')
         err = coste_lineal(res.x, X[0:i], Y[0:i])
-        # print(X[0:i + 1].shape)
-        # print(Y[0:i + 1].shape)
-        # print(X_val[0:i + 1].shape)
-        # print(Y_val[0:i + 1].shape)
-        errVal = coste_lineal(res.x, X_val[0:i], Y_val[0:i])
+        errVal = coste_lineal(res.x, X_val, Y_val)
         Errors[i-1] = np.array([err, errVal])
-        print(f"Subset i {i}: \t Train {err} \t Validation {errVal}")
 
 
     plot_line(sliceSize, Errors[:-1, 0])

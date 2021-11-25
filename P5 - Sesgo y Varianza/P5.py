@@ -21,8 +21,10 @@ def plot_decisionboundary(X, Y, Theta, poly):
 def h(x, theta):
     return theta[0] + theta[1] * x
 
+
 def plot_line(X, Y):
     plt.plot(X, Y)
+
 
 def plot_regression(X, Y, theta):
     min_x = np.min(X)
@@ -32,6 +34,23 @@ def plot_regression(X, Y, theta):
     plt.plot(X, Y, "x")
     plt.plot([min_x, max_x], [min_y, max_y])
     # plt.savefig("apartado1_line.png")
+
+def plot_polynomial_regression(X, Y, Theta, p):
+    Pol_X = polinomiza_atributos(X, p)
+    Pol_X = np.hstack([np.ones([Pol_X.shape[0], 1]), Pol_X])
+    Norm_Poly_X, media, varianza = normaliza_matriz(Pol_X)
+    h = Norm_Poly_X.dot(Theta.T)
+    print(Theta)
+    print(Norm_Poly_X)
+    print(varianza)
+    print(media)
+
+    print(h)
+    h = h * varianza[1] + media[1]
+    print(h)
+    plt.scatter(X, Y, marker="x")
+    # plt.plot para dibujar puntos conectados, scatter para puntos suelts
+    # plot_line(X[:, 1], h)
 
 
 def coste_regularizado(Theta, X, Y, lamb):
@@ -68,42 +87,10 @@ def minimize_this_pls(Theta, X, Y, lamb):
 
 
 def main():
-    data = loadmat('ex5data1.mat')
-    X = data['X']
-    m = X.shape[0]
-    Y = data['y']
-    Y = Y[:, 0]
-    X_val = data['Xval']
-    Y_val = data['yval']
-    Y_val = Y_val[:, 0]
-    X_test = data['Xtest']
-    Y_test = data['ytest']
-    Y_test = Y_test[:, 0]
-    Theta = np.array([1, 1])
-    X = np.hstack([np.ones([X.shape[0], 1]), X])
-    X_val = np.hstack([np.ones([X_val.shape[0], 1]), X_val])
-
-    print(coste_regularizado(Theta, X, Y, 1))
-    print(gradiente_regularizado(Theta, X, Y, 1))
-    res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X, Y, 0),
-                                  jac=True, method='TNC')
-
     # plot_line(X[:, 1:], Y, res.x)
-    Errors = np.empty((m, 2))
-    print(Errors.shape)
-    sliceSize = np.arange(1, m)
-    print(sliceSize)
-    for i in sliceSize:
-        Theta = np.array([1, 1])
-        res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X[0:i], Y[0:i], 0),
-                                      jac=True, method='TNC')
-        err = coste_lineal(res.x, X[0:i], Y[0:i])
-        errVal = coste_lineal(res.x, X_val, Y_val)
-        Errors[i-1] = np.array([err, errVal])
+    # Errors = learning_curves(X, Y, X_val, Y_val)
+    # learning_curves()
+    polynomial_regression()
 
-
-    plot_line(sliceSize, Errors[:-1, 0])
-    plot_line(sliceSize, Errors[:-1, 1])
-    plt.show()
 
 main()

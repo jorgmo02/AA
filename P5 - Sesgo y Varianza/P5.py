@@ -35,23 +35,6 @@ def plot_regression(X, Y, theta):
     plt.plot([min_x, max_x], [min_y, max_y])
     # plt.savefig("apartado1_line.png")
 
-def plot_polynomial_regression(X, Y, Theta, p):
-    Pol_X = polinomiza_atributos(X, p)
-    Pol_X = np.hstack([np.ones([Pol_X.shape[0], 1]), Pol_X])
-    Norm_Poly_X, media, varianza = normaliza_matriz(Pol_X)
-    h = Norm_Poly_X.dot(Theta.T)
-    print(Theta)
-    print(Norm_Poly_X)
-    print(varianza)
-    print(media)
-
-    print(h)
-    h = h * varianza[1] + media[1]
-    print(h)
-    plt.scatter(X, Y, marker="x")
-    # plt.plot para dibujar puntos conectados, scatter para puntos suelts
-    # plot_line(X[:, 1], h)
-
 
 def coste_regularizado(Theta, X, Y, lamb):
     m = X.shape[0]
@@ -90,9 +73,7 @@ def normaliza_matriz(x):
     mu = np.mean(x, axis=0)  # Media de cada columna
     sigma = np.std(x, axis=0)  # Desviacion estandar por columnas, no confundir con la querida std de c++
 
-    x_norm = (x - mu) / sigma
-
-    return x_norm, mu, sigma
+    return (x - mu) / sigma, mu, sigma
 
 
 def polinomiza_atributos(X, p):
@@ -150,13 +131,43 @@ def try_funcs():
     print(gradiente_regularizado(Theta, X, Y, 1))
 
 
+def polinomize_and_normalize(M, p):
+    Pol_M = polinomiza_atributos(M, p)
+    Pol_M, media, varianza = normaliza_matriz(Pol_M)
+
+    Pol_M = np.hstack([np.ones([Pol_M.shape[0], 1]), Pol_M])
+
+    # TODO puede que haga falta hacer hstack de 1 a la media y 0 a la varianza
+    media = np.hstack([np.ones(1), media])
+    varianza = np.hstack([np.zeros(1), varianza])
+
+    return Pol_M, media, varianza
+
+
+def plot_polynomial_regression(X, Y, Theta, p):
+    Norm_Pol_X, mu, sigma = polinomize_and_normalize(X, p)
+    h = Norm_Pol_X.dot(Theta.T)
+
+    plotSpace = np.linspace(min(X), max(X), 1700)
+    plotSpace_np = polinomiza_atributos(plotSpace, p)
+    plotSpace_np = (plotSpace_np - mu[1:]) / sigma[1:]
+    plotSpace_np = np.hstack([np.ones([plotSpace_np.shape[0], 1]), plotSpace_np])
+
+    h_plot = plotSpace_np.dot(Theta.T)
+
+    plt.scatter(X, Y, marker="x", c='red')
+    plt.plot(plotSpace, h_plot)  # para dibujar puntos conectados, scatter para puntos suelts
+
+
 def polynomial_regression():
     X, Y, X_val, Y_val, X_test, Y_test = load_data()
     m = X.shape[0]
+
     p = 8
     Pol_X = polinomiza_atributos(X, p)
-    Pol_X = np.hstack([np.ones([Pol_X.shape[0], 1]), Pol_X])
     Norm_Pol_X, media, varianza = normaliza_matriz(Pol_X)
+
+    Norm_Pol_X = np.hstack([np.ones([Norm_Pol_X.shape[0], 1]), Norm_Pol_X])
     Theta = np.ones(Norm_Pol_X.shape[1])
 
     lamb = 0

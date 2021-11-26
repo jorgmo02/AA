@@ -116,10 +116,9 @@ def learning_curves():
         errVal = coste_lineal(res.x, X_val, Y_val)
         Errors[i - 1] = np.array([err, errVal])
 
-    plot_line(sliceSize, Errors[:-1, 0])
-    plot_line(sliceSize, Errors[:-1, 1])
+    plt.plot(sliceSize, Errors[:-1, 0])
+    plt.plot(sliceSize, Errors[:-1, 1])
     plt.show()
-
 
 
 def try_funcs():
@@ -139,8 +138,8 @@ def polinomize_and_normalize(M, p):
     Pol_M = np.hstack([np.ones([Pol_M.shape[0], 1]), Pol_M])
 
     # TODO puede que haga falta hacer hstack de 1 a la media y 0 a la varianza
-    media = np.hstack([np.ones(1), media])
-    varianza = np.hstack([np.zeros(1), varianza])
+    # media = np.hstack([np.ones(1), media])
+    # varianza = np.hstack([np.zeros(1), varianza])
 
     return Pol_M, media, varianza
 
@@ -151,7 +150,7 @@ def plot_polynomial_regression(X, Y, Theta, p):
 
     plotSpace = np.linspace(min(X), max(X), 1700)
     plotSpace_np = polinomiza_atributos(plotSpace, p)
-    plotSpace_np = (plotSpace_np - mu[1:]) / sigma[1:]
+    plotSpace_np = (plotSpace_np - mu) / sigma
     plotSpace_np = np.hstack([np.ones([plotSpace_np.shape[0], 1]), plotSpace_np])
 
     h_plot = plotSpace_np.dot(Theta.T)
@@ -167,7 +166,6 @@ def learning_curves_polynomial():
     p = 8
     X_np, media, varianza = polinomize_and_normalize(X, p)
     X_val_np, media, varianza = polinomize_and_normalize(X_val, p)
-
 
     lamb = 0
     Errors = np.empty((m, 2))
@@ -205,12 +203,50 @@ def polynomial_regression():
     plt.show()
 
 
+def choose_lambda():
+    X, Y, X_val, Y_val, X_test, Y_test = load_data()
+    m = X.shape[0]
+
+    p = 8
+    X_np, mu, sigma = polinomize_and_normalize(X, p)
+
+    X_val_np = polinomiza_atributos(X_val, p)
+    X_val_np = (X_val_np-mu)/sigma
+    X_val_np = np.hstack([np.ones([X_val_np.shape[0], 1]), X_val_np])
+
+    X_test_np = polinomiza_atributos(X_test, p)
+    X_test_np = (X_test_np-mu)/sigma
+    X_test_np = np.hstack([np.ones([X_test_np.shape[0], 1]), X_test_np])
+
+    lambdas = np.array([0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10])
+    Errors = np.empty((lambdas.shape[0], 2))
+    i = 0
+    Theta = np.ones(X_np.shape[1])
+    for lamb in lambdas:
+        Theta = np.ones(X_np.shape[1])
+        res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X_np, Y, lamb),
+                                      jac=True, method='TNC')
+        err = coste_lineal(res.x, X_np, Y)
+        errVal = coste_lineal(res.x, X_val_np, Y_val)
+        Errors[i] = np.array([err, errVal])
+        i = i + 1
+
+    plt.plot(lambdas, Errors[:, 0], label='Train')
+    plt.plot(lambdas, Errors[:, 1], label='Cross Validation')
+    plt.legend()
+    plt.show()
+
+    res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X_np, Y, 3),
+                                  jac=True, method='TNC')
+    print(coste_lineal(res.x, X_test_np, Y_test))
+
+
 def main():
     # plot_line(X[:, 1:], Y, res.x)
     # Errors = learning_curves(X, Y, X_val, Y_val)
     # learning_curves()
     # polynomial_regression()
-    learning_curves_polynomial()
+    choose_lambda()
 
 
 main()

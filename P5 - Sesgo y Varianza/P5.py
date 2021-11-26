@@ -121,6 +121,7 @@ def learning_curves():
     plt.show()
 
 
+
 def try_funcs():
     X, Y, X_val, Y_val, X_test, Y_test = load_data()
     m = X.shape[0]
@@ -159,6 +160,32 @@ def plot_polynomial_regression(X, Y, Theta, p):
     plt.plot(plotSpace, h_plot)  # para dibujar puntos conectados, scatter para puntos suelts
 
 
+def learning_curves_polynomial():
+    X, Y, X_val, Y_val, X_test, Y_test = load_data()
+    m = X.shape[0]
+
+    p = 8
+    X_np, media, varianza = polinomize_and_normalize(X, p)
+    X_val_np, media, varianza = polinomize_and_normalize(X_val, p)
+
+
+    lamb = 0
+    Errors = np.empty((m, 2))
+    sliceSize = np.arange(1, m)
+
+    for i in sliceSize:
+        Theta = np.ones(X_np.shape[1])
+        res = scipy.optimize.minimize(minimize_this_pls, Theta, args=(X_np[0:i], Y[0:i], lamb),
+                                      jac=True, method='TNC')
+        err = coste_lineal(res.x, X_np[0:i], Y[0:i])
+        errVal = coste_lineal(res.x, X_val_np, Y_val)
+        Errors[i - 1] = np.array([err, errVal])
+
+    plot_line(sliceSize, Errors[:-1, 0])
+    plot_line(sliceSize, Errors[:-1, 1])
+    plt.show()
+
+
 def polynomial_regression():
     X, Y, X_val, Y_val, X_test, Y_test = load_data()
     m = X.shape[0]
@@ -182,7 +209,8 @@ def main():
     # plot_line(X[:, 1:], Y, res.x)
     # Errors = learning_curves(X, Y, X_val, Y_val)
     # learning_curves()
-    polynomial_regression()
+    # polynomial_regression()
+    learning_curves_polynomial()
 
 
 main()

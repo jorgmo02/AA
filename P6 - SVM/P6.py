@@ -2,6 +2,10 @@ from scipy.io import loadmat
 from sklearn.svm import SVC
 import numpy as np
 import matplotlib.pyplot as plt
+from get_vocab_dict import getVocabDict
+import process_email as mail
+import codecs
+
 
 def visualize_boundary(X, y, svm, file_name):
     x1 = np.linspace(X[:, 0].min(), X[:, 0].max(), 100)
@@ -17,11 +21,13 @@ def visualize_boundary(X, y, svm, file_name):
     plt.savefig(file_name)
     plt.close()
 
+
 def load_example_data(filename):
     data = loadmat(filename)
     X = data['X']
     y = data['y'][:, 0]
     return X, y
+
 
 def kernel_lineal():
     C = 100
@@ -29,6 +35,7 @@ def kernel_lineal():
     X, y = load_example_data('ex6data1.mat')
     svm.fit(X, y)
     visualize_boundary(X, y, svm, 'ex1-C{}.png'.format(C))
+
 
 def kernel_gaussiano():
     X, y = load_example_data("ex6data2.mat")
@@ -38,10 +45,11 @@ def kernel_gaussiano():
     svm.fit(X, y)
     visualize_boundary(X, y, svm, 'ex2-C{}.png'.format(C))
 
+
 def porcentaje_aciertos(X, y, svm):
     h = svm.predict(X)
     aciertos = np.sum(h == y)
-    return (aciertos/X.shape[0])*100
+    return (aciertos / X.shape[0]) * 100
 
 
 def busca_mejores_parametros():
@@ -64,7 +72,25 @@ def busca_mejores_parametros():
     mejor = np.unravel_index(np.argmax(Result), Result.shape)
     print("Mejor C {} y mejor Sigma {}".format(C_samples[mejor[0]], Sigma_samples[mejor[1]]))
 
+
+def load_mail(filename, vocab):
+    email_contents = codecs.open(filename, 'r', encoding='utf-8', errors='ignore').read()
+    email = mail.email2TokenList(email_contents)
+    vec = np.zeros(len(vocab))
+    for word in email:
+        if word in vocab.keys():
+            vec[vocab[word]] = 1
+
+    return vec
+
+
+def filtra_spam():
+    vocab = getVocabDict()
+    print(load_mail('spam/0001.txt', vocab))
+
+
 def main():
-    busca_mejores_parametros()
+    filtra_spam()
+
 
 main()

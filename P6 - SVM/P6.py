@@ -57,6 +57,7 @@ def busca_mejores_parametros():
     data = loadmat('ex6data3.mat')
     X = data['X']
     y = data['y'][:, 0]
+    print(y)
     X_val = data['Xval']
     Y_val = data['yval'][:, 0]
 
@@ -88,7 +89,7 @@ def load_mail(filename, vocab):
 def LoadSet(setFiles, yVal, vocab):
     spamFiles = glob.glob(setFiles)
     X = np.zeros((len(spamFiles), len(vocab)))
-    Y = np.full(shape=len(spamFiles), fill_value=yVal)
+    Y = np.full(len(spamFiles), fill_value=yVal)
     for i, file in enumerate(spamFiles):
         np.copyto(dst=X[i], src=load_mail(file, vocab))
 
@@ -101,15 +102,37 @@ def filtra_spam():
     X_EHam, Y_EHam = LoadSet("easy_ham/*.txt", 0, vocab)
     X_HHam, Y_HHam = LoadSet("hard_ham/*.txt", 0, vocab)
 
-    print(X_Spam.shape)
-    print(Y_Spam.shape)
-    print(X_EHam.shape)
-    print(Y_EHam.shape)
     print(X_HHam.shape)
     print(Y_HHam.shape)
+    print(Y_HHam)
+
+    percTrain = 0.6
+    percVal = 0.2
+    percTest = 0.2
+
+    X = np.vstack((X_Spam[:(int)(percTrain * X_Spam.shape[0])],
+                   X_EHam[:(int)(percTrain * X_EHam.shape[0])],
+                   X_HHam[:(int)(percTrain * X_HHam.shape[0])]))
+
+    Y = np.hstack((Y_Spam[:(int)(percTrain * Y_Spam.shape[0])],
+                   Y_EHam[:(int)(percTrain * Y_EHam.shape[0])],
+                   Y_HHam[:(int)(percTrain * Y_HHam.shape[0])]))
+
+    X_test = np.vstack((X_Spam[(int)(percTrain * X_Spam.shape[0]):],
+                        X_EHam[(int)(percTrain * X_EHam.shape[0]):],
+                        X_HHam[(int)(percTrain * X_HHam.shape[0]):]))
+
+    Y_test = np.hstack((Y_Spam[(int)(percTrain * Y_Spam.shape[0]):],
+                        Y_EHam[(int)(percTrain * Y_EHam.shape[0]):],
+                        Y_HHam[(int)(percTrain * Y_HHam.shape[0]):]))
+
+    svm = SVC(kernel='rbf', C=1, gamma=1 / (2 * 0.1 ** 2))
+    svm.fit(X, Y)
+    print(porcentaje_aciertos(X_test, Y_test, svm))
 
 
 def main():
+    busca_mejores_parametros()
     filtra_spam()
 
 

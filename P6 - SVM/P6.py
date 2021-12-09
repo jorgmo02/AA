@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from get_vocab_dict import getVocabDict
 import process_email as mail
 import codecs
+import glob
 
 
 def visualize_boundary(X, y, svm, file_name):
@@ -79,14 +80,33 @@ def load_mail(filename, vocab):
     vec = np.zeros(len(vocab))
     for word in email:
         if word in vocab.keys():
-            vec[vocab[word]] = 1
+            vec[vocab[word] - 1] = 1
 
     return vec
 
 
+def LoadSet(setFiles, yVal, vocab):
+    spamFiles = glob.glob(setFiles)
+    X = np.zeros((len(spamFiles), len(vocab)))
+    Y = np.full(shape=len(spamFiles), fill_value=yVal)
+    for i, file in enumerate(spamFiles):
+        np.copyto(dst=X[i], src=load_mail(file, vocab))
+
+    return X, Y
+
+
 def filtra_spam():
     vocab = getVocabDict()
-    print(load_mail('spam/0001.txt', vocab))
+    X_Spam, Y_Spam = LoadSet("spam/*.txt", 1, vocab)
+    X_EHam, Y_EHam = LoadSet("easy_ham/*.txt", 0, vocab)
+    X_HHam, Y_HHam = LoadSet("hard_ham/*.txt", 0, vocab)
+
+    print(X_Spam.shape)
+    print(Y_Spam.shape)
+    print(X_EHam.shape)
+    print(Y_EHam.shape)
+    print(X_HHam.shape)
+    print(Y_HHam.shape)
 
 
 def main():

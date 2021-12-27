@@ -86,7 +86,7 @@ def load_mail(filename, vocab):
     return vec
 
 
-def LoadSet(setFiles, yVal, vocab):
+def load_set(setFiles, yVal, vocab):
     spamFiles = glob.glob(setFiles)
     X = np.zeros((len(spamFiles), len(vocab)))
     Y = np.full(len(spamFiles), fill_value=yVal)
@@ -98,9 +98,9 @@ def LoadSet(setFiles, yVal, vocab):
 
 def filtra_spam():
     vocab = getVocabDict()
-    X_Spam, Y_Spam = LoadSet("spam/*.txt", 1, vocab)
-    X_EHam, Y_EHam = LoadSet("easy_ham/*.txt", 0, vocab)
-    X_HHam, Y_HHam = LoadSet("hard_ham/*.txt", 0, vocab)
+    X_Spam, Y_Spam = load_set("spam/*.txt", 1, vocab)
+    X_EHam, Y_EHam = load_set("easy_ham/*.txt", 0, vocab)
+    X_HHam, Y_HHam = load_set("hard_ham/*.txt", 0, vocab)
 
     print(X_HHam.shape)
     print(Y_HHam.shape)
@@ -110,29 +110,51 @@ def filtra_spam():
     percVal = 0.2
     percTest = 0.2
 
-    X = np.vstack((X_Spam[:(int)(percTrain * X_Spam.shape[0])],
-                   X_EHam[:(int)(percTrain * X_EHam.shape[0])],
-                   X_HHam[:(int)(percTrain * X_HHam.shape[0])]))
+    X_train = np.vstack((X_Spam[:(int)(percTrain * X_Spam.shape[0])],
+                         X_EHam[:(int)(percTrain * X_EHam.shape[0])],
+                         X_HHam[:(int)(percTrain * X_HHam.shape[0])]))
 
-    Y = np.hstack((Y_Spam[:(int)(percTrain * Y_Spam.shape[0])],
-                   Y_EHam[:(int)(percTrain * Y_EHam.shape[0])],
-                   Y_HHam[:(int)(percTrain * Y_HHam.shape[0])]))
+    Y_train = np.hstack((Y_Spam[:(int)(percTrain * Y_Spam.shape[0])],
+                         Y_EHam[:(int)(percTrain * Y_EHam.shape[0])],
+                         Y_HHam[:(int)(percTrain * Y_HHam.shape[0])]))
 
-    X_test = np.vstack((X_Spam[(int)(percTrain * X_Spam.shape[0]):],
-                        X_EHam[(int)(percTrain * X_EHam.shape[0]):],
-                        X_HHam[(int)(percTrain * X_HHam.shape[0]):]))
+    X_val = np.vstack((X_Spam[(int)(percTrain * X_Spam.shape[0]):(int)((percTrain + percVal) * X_Spam.shape[0])],
+                       X_EHam[(int)(percTrain * X_EHam.shape[0]):(int)((percTrain + percVal) * X_EHam.shape[0])],
+                       X_HHam[(int)(percTrain * X_HHam.shape[0]):(int)((percTrain + percVal) * X_HHam.shape[0])]))
 
-    Y_test = np.hstack((Y_Spam[(int)(percTrain * Y_Spam.shape[0]):],
-                        Y_EHam[(int)(percTrain * Y_EHam.shape[0]):],
-                        Y_HHam[(int)(percTrain * Y_HHam.shape[0]):]))
+    Y_val = np.hstack((Y_Spam[(int)(percTrain * Y_Spam.shape[0]):(int)((percTrain + percVal) * Y_Spam.shape[0])],
+                       Y_EHam[(int)(percTrain * Y_EHam.shape[0]):(int)((percTrain + percVal) * Y_EHam.shape[0])],
+                       Y_HHam[(int)(percTrain * Y_HHam.shape[0]):(int)((percTrain + percVal) * Y_HHam.shape[0])]))
 
-    svm = SVC(kernel='rbf', C=1, gamma=1 / (2 * 0.1 ** 2))
-    svm.fit(X, Y)
+    X_test = np.vstack((X_Spam[(int)((percTrain + percVal) * X_Spam.shape[0]):],
+                        X_EHam[(int)((percTrain + percVal) * X_EHam.shape[0]):],
+                        X_HHam[(int)((percTrain + percVal) * X_HHam.shape[0]):]))
+
+    Y_test = np.hstack((Y_Spam[(int)((percTrain + percVal) * Y_Spam.shape[0]):],
+                        Y_EHam[(int)((percTrain + percVal) * Y_EHam.shape[0]):],
+                        Y_HHam[(int)((percTrain + percVal) * Y_HHam.shape[0]):]))
+
+    C_samples = np.array([0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30])
+    Sigma_samples = np.array([0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30])
+    Result = np.empty((C_samples.shape[0], Sigma_samples.shape[0]))
+    for i, C in enumerate(C_samples):
+        for j, sigma in enumerate(Sigma_samples):
+            svm = SVC(kernel='rbf', C=C, gamma=1 / (2 * sigma ** 2))
+            svm.fit(X_train, Y_train)
+            Result[i, j] = porcentaje_aciertos(X_val, Y_val, svm)
+
+    mejor = np.unravel_index(np.argmax(Result), Result.shape)
+    print("Mejor C {} y mejor Sigma {}".format(C_samples[mejor[0]], Sigma_samples[mejor[1]]))
+
+    svm = SVC(kernel='rbf', C=C_samples[mejor[0]], gamma=1 / (2 * Sigma_samples[mejor[1]] ** 2))
+    # El mejor C es 30 y Sigma 10
+    # svm = SVC(kernel='rbf', C=30, gamma=1 / (2 * 10 ** 2))
+    svm.fit(X_train,Y_train)
     print(porcentaje_aciertos(X_test, Y_test, svm))
 
 
 def main():
-    busca_mejores_parametros()
+    # busca_mejores_parametros()
     filtra_spam()
 
 

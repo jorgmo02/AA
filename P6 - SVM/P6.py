@@ -31,9 +31,9 @@ def load_example_data(filename):
 
 
 def kernel_lineal():
-    C = 100
-    svm = SVC(kernel='linear', C=C)
     X, y = load_example_data('ex6data1.mat')
+    C = 1
+    svm = SVC(kernel='linear', C=C)
     svm.fit(X, y)
     visualize_boundary(X, y, svm, 'ex1-C{}.png'.format(C))
 
@@ -44,7 +44,7 @@ def kernel_gaussiano():
     sigma = 0.1
     svm = SVC(kernel='rbf', C=C, gamma=1 / (2 * sigma ** 2))
     svm.fit(X, y)
-    visualize_boundary(X, y, svm, 'ex2-C{}.png'.format(C))
+    visualize_boundary(X, y, svm, 'ex2-C{}-{}.png'.format(C, sigma))
 
 
 def porcentaje_aciertos(X, y, svm):
